@@ -29,13 +29,13 @@ const getNearMonth = function (year, month) {
   }
 }
 
-export const getRenderList = function (year, month) {
+export const getRenderList = function (year, month, notAutoRow) {
   let nearMonthObj = getNearMonth(year, month)
   let prevMonthInfo = getMonthInfo(nearMonthObj.prevMonth)
   let crtMonthInfo = getMonthInfo(nearMonthObj.crtMonth)
   let nextMonthInfo = getMonthInfo(nearMonthObj.nextMonth)
 
-  let matchRowCount = 0
+  let matchRowCount = notAutoRow ? 42 : 0
   let prevAddCrtCount = 0
 
   let prevList = []
@@ -44,17 +44,13 @@ export const getRenderList = function (year, month) {
 
   crtList = getArrayViaCount(crtMonthInfo.monthDayNum)
 
- /* console.log('上月天数:' + prevMonthInfo.monthDayNum)
-  console.log('当月天数:' + crtMonthInfo.monthDayNum)
-  console.log('下月天数:' + nextMonthInfo.monthDayNum)*/
-
-  if (crtMonthInfo.dateFirstDay === 0) { // 当月第一天是星期天 
-    matchRowCount = getMatchCount(crtMonthInfo.monthDayNum, 0)
+  if (crtMonthInfo.dateFirstDay === 0) { // 当月第一天是星期天
+    matchRowCount = matchRowCount || getMatchCount(crtMonthInfo.monthDayNum, 0)
     nextList = getArrayViaCount(matchRowCount - crtMonthInfo.monthDayNum)
   } else {
     prevList = getArrayViaCountEnd(prevMonthInfo.monthDayNum, crtMonthInfo.dateFirstDay)
     prevAddCrtCount = prevList.length + crtList.length
-    matchRowCount = getMatchCount(crtMonthInfo.monthDayNum, prevList.length)
+    matchRowCount = matchRowCount || getMatchCount(crtMonthInfo.monthDayNum, prevList.length)
     if (prevAddCrtCount !== matchRowCount) {
       nextList = getArrayViaCount(matchRowCount - prevAddCrtCount)
     }

@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <yu-calendar/>
+    <yu-calendar :double-panel="calendar.double" :range="calendar.range"/>
   </div>
 </template>
 
@@ -8,6 +8,14 @@
 import YuCalendar from './components/YuCalendar.vue'
 export default {
   name: 'app',
+  data () {
+    return {
+      calendar: {
+        double: true,
+        range: true
+      }
+    }
+  },
   components: {
     YuCalendar
   }
