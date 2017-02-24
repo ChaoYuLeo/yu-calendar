@@ -2,6 +2,8 @@
 
 > a calendar component for vue2.x
 
+## [Demo](https://chaoyuleo.github.io/yu-calendar)
+
 ## Build Setup
 
 ``` bash
