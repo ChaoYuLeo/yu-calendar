@@ -1,12 +1,19 @@
 <template>
   <div>
     <div>
-      <input type="number" :value="year" @input="year = $event.target.value">年
-      <input type="number" :value="month" @input="getMonth($event.target.value)">月
-      <br/>
-      当前选择了：{{selectedDate}}
+      <input type="text" :value="computedDate" @click.stop="calendarShow = true">
 
-      <div class="calendar-container clearfix" :class="{'single-width': doublePanel == false, 'double-width': doublePanel == true}">
+
+      <div v-show="calendarShow" @click.stop="" class="calendar-container clearfix" :class="{'single-width': doublePanel == false, 'double-width': doublePanel == true}">
+        <div class="calendar-header clearfix">
+          <div class="calendar-contrl">
+            <div class="triangle triangle-up" @click="togglePanel(false)"></div>
+            <div class="triangle triangle-down" @click="togglePanel(true)"></div>
+          </div>
+          <div class="calendar-title">{{year}}年 {{month}}月</div>
+          <div class="calendar-title" v-if="doublePanel">{{new Date(year, month).getFullYear()}}年 {{new Date(year, month).getMonth() + 1}}月</div>
+        </div>
+
         <ol class="clearfix" :class="{'double-mg-right': doublePanel == true}">
           <li class="week" v-for="weekdate in weekList">{{weekdate}}</li>
           <li class="cant-act" v-for="day in renderCrtMonthList.prevList">{{day}}</li>
@@ -16,7 +23,7 @@
         <ol class="clearfix" v-if="doublePanel">
           <li class="week" v-for="weekdate in weekList">{{weekdate}}</li>
           <li class="cant-act" v-for="day in renderNextMonthList.prevList">{{day}}</li>
-          <li @click="selectNextPanelData(day)" class="crt-month" :class="activeNextPanelClass(index)" v-for="(day, index) in renderNextMonthList.crtList">{{day}}</li>
+          <li @click="selectDate(day, true)" class="crt-month" :class="activeNextPanelClass(index)" v-for="(day, index) in renderNextMonthList.crtList">{{day}}</li>
           <li class="cant-act" v-for="day in renderNextMonthList.nextList">{{day}}</li>
         </ol>
       </div>
@@ -27,6 +34,7 @@
 
 <script>
 import { getRenderList, zero } from '../utils.js'
+let rangeStartEndKey = [null, 'start', 'end']
 export default {
   props: {
     range: {
@@ -46,8 +54,9 @@ export default {
   },
   data () {
     return {
-      year: (new Date).getFullYear(),
-      month: (new Date).getMonth() + 1,
+      calendarShow: false,
+      year: (new Date()).getFullYear(),
+      month: (new Date()).getMonth() + 1,
       selectedYear: 0,
       selectedMonth: 0,
       selectedDate: '',
@@ -69,26 +78,77 @@ export default {
       }
     }
   },
+  mounted () {
+    document.addEventListener('click', (event) => {
+      this.calendarShow = false
+    })
+  },
   computed: {
     renderCrtMonthList () {
       return getRenderList(this.year, this.month, this.doublePanel)
     },
     renderNextMonthList () {
       return getRenderList(this.year, this.month + 1, this.doublePanel)
+    },
+    computedDate () {
+      if (typeof this.selectedDate === 'object') {
+        let reverse = (new Date(this.rangeData.start.year, this.rangeData.start.month, this.rangeData.start.day) - new Date(this.rangeData.end.year, this.rangeData.end.month, this.rangeData.end.day)) > 0 ? [2, 1] : [1, 2]
+        let start = zero(this.rangeData[rangeStartEndKey[reverse[0]]].year) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[0]]].month) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[0]]].day)
+        let end = zero(this.rangeData[rangeStartEndKey[reverse[1]]].year) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[1]]].month) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[1]]].day)
+        if (start === end) return start
+        return start + '——' + end
+      } else {
+        return this.selectedDate
+      }
     }
   },
   methods: {
     activeClass (index) {
-      if (index === this.selectIndex && this.selectedYear === this.year && this.selectedMonth === this.month) return 'selected'
+      if (this.rangeClass(index) === 'selected') return 'selected'
+      if (!this.range) {
+        if (index === this.selectIndex && this.selectedYear === this.year && this.selectedMonth === this.month) return 'selected'
+      } else {
+        if (this.selectedDate === '') {
+          if (index === this.rangeData.start.index && this.rangeData.start.year === this.year && this.rangeData.start.month === this.month) return 'selected'
+        } else {
+          if (index === this.rangeData.start.index && this.rangeData.start.year === this.year && this.rangeData.start.month === this.month) return 'selected'
+          if (index === this.rangeData.end.index && this.rangeData.end.year === this.year && this.rangeData.end.month === this.month) return 'selected'
+        }
+      }
     },
     activeNextPanelClass (index) {
+      if (this.rangeClass(index, true) === 'selected') return 'selected'
       let crtDateStr = zero(this.year) + zero(this.month)
-      let nextDate = new Date(this.selectedYear, this.selectedMonth - 2)
-      let nextDateSrt = zero(nextDate.getFullYear()) + zero(nextDate.getMonth() + 1)
-      // console.log(crtDateStr, nextDateSrt)
-      if (index === this.selectIndex && crtDateStr === nextDateSrt) {
-        return 'selected'
+      let nextDate
+      let nextDateSrt
+      if (!this.range) {
+        nextDate = new Date(this.selectedYear, this.selectedMonth - 2)
+        nextDateSrt = zero(nextDate.getFullYear()) + zero(nextDate.getMonth() + 1)
+        if (index === this.selectIndex && crtDateStr === nextDateSrt) return 'selected'
+      } else {
+        nextDate = new Date(this.rangeData.start.year, this.rangeData.start.month - 2)
+        nextDateSrt = zero(nextDate.getFullYear()) + zero(nextDate.getMonth() + 1)
+        if (this.selectedDate === '') {
+          if (index === this.rangeData.start.index && crtDateStr === nextDateSrt) return 'selected'
+        } else {
+          let endNextDate = new Date(this.rangeData.end.year, this.rangeData.end.month - 2)
+          let endNextDateSrt = zero(endNextDate.getFullYear()) + zero(endNextDate.getMonth() + 1)
+          if (index === this.rangeData.start.index && crtDateStr === nextDateSrt) return 'selected'
+          if (index === this.rangeData.end.index && crtDateStr === endNextDateSrt) return 'selected'
+        }
       }
+    },
+    rangeClass (index, isNextPanel) {
+      if (!this.range || this.selectedDate === '') return ''
+      let monthNum = isNextPanel ? 0 : 1
+      let crt = new Date(this.year, this.month - monthNum, index + 1)
+      // console.log(this.rangeData.start.year, this.rangeData.start.month, this.rangeData.start.day)
+      // console.log(this.rangeData.end.year, this.rangeData.end.month, this.rangeData.end.day)
+      let start = new Date(this.rangeData.start.year, this.rangeData.start.month - 1, this.rangeData.start.day)
+      let end = new Date(this.rangeData.end.year, this.rangeData.end.month - 1, this.rangeData.end.day)
+      let isPositive = !!(end - start >=0)
+      let rangeFlag = isPositive ? Number(crt) >= Number(start) && Number(crt) <= Number(end) : Number(crt) >= Number(end) && Number(crt) <= Number(start)
+      if (rangeFlag) return 'selected'
     },
     getMonth (val) {
       let month
@@ -102,43 +162,46 @@ export default {
         this.month = val
       }
     },
-    selectDate (day) {
-      let yearStr = zero(this.year)
-      let monthStr = zero(this.month)
-      let date = zero(day)
-      let selectedDate = yearStr + '-' + monthStr + '-' + date
+    togglePanel (isNext) {
+      let count = this.doublePanel ? 2 : 1
+      if (isNext) this.getMonth(this.month + count)
+      else this.getMonth(this.month - count)
+    },
+    selectDate (day, isNextPanel) {
+      let reverse
+      let year
+      let month
+      let date = day
+      if (!isNextPanel) {
+        year = this.year
+        month = this.month
+      } else {
+        let tempDate = new Date(this.year, this.month)
+        year = tempDate.getFullYear()
+        month = tempDate.getMonth() + 1
+      }
+      let selectedDate = zero(year) + '-' + zero(month) + '-' + zero(date)
       if (!this.range) {
         this.selectIndex = day - 1
-        this.selectedYear = this.year
-        this.selectedMonth = this.month
+        this.selectedYear = year
+        this.selectedMonth = month
         this.selectedDate = selectedDate
       } else {
+        this.selectedDate = ''
         this.rangeData.clickCount++
-        if (this.rangeData.clickCount === 1) {
-          this.rangeData.start.index = day - 1
-          this.rangeData.start.year = this.year
-          this.rangeData.start.month = this.month
-          this.rangeData.start.day = day
-        } else if (this.rangeData.clickCount === 2) {
-          this.rangeData.end.index = day - 1
-          this.rangeData.end.year = this.year
-          this.rangeData.end.month = this.month
-          this.rangeData.end.day = day
+        this.rangeData[rangeStartEndKey[this.rangeData.clickCount]].index = day - 1
+        this.rangeData[rangeStartEndKey[this.rangeData.clickCount]].year = year
+        this.rangeData[rangeStartEndKey[this.rangeData.clickCount]].month = month
+        this.rangeData[rangeStartEndKey[this.rangeData.clickCount]].day = day
+        if (this.rangeData.clickCount === 2) {
           this.rangeData.clickCount = 0
+          reverse = (new Date(this.rangeData.start.year, this.rangeData.start.month, this.rangeData.start.day) - new Date(this.rangeData.end.year, this.rangeData.end.month, this.rangeData.end.day)) > 0 ? [2, 1] : [1, 2]
+          this.selectedDate = {
+            start: zero(this.rangeData[rangeStartEndKey[reverse[0]]].year) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[0]]].month) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[0]]].day),
+            end: zero(this.rangeData[rangeStartEndKey[reverse[1]]].year) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[1]]].month) + '-' + zero(this.rangeData[rangeStartEndKey[reverse[1]]].day)
+          }
         }
       }
-      console.log(this.rangeData)
-    },
-    selectNextPanelData (day) {
-      let tempDate = new Date(this.year, this.month)
-      this.selectIndex = day - 1
-      this.selectedYear = tempDate.getFullYear()
-      this.selectedMonth = tempDate.getMonth() + 1
-      let yearStr = zero(this.selectedYear)
-      let monthStr = zero(this.selectedMonth)
-      let date = zero(day)
-      let selectedDate = yearStr + '-' + monthStr + '-' + date
-      this.selectedDate = selectedDate
     }
   }
 }
@@ -154,25 +217,47 @@ export default {
 
   .clearfix { *zoom:1;}
 
+  .calendar-header {
+    text-align: center;
+    margin: 12px 22px 0 0;
+    position: relative;
+    height: 30px;
+  }
+
+  .calendar-title {
+    float: left;
+    width: 50%;
+    font-size: 20px;
+    color: rgb(46, 46, 46);
+  }
+
+  .calendar-contrl {
+    position: absolute;
+    right: 0;
+  }
+
   .calendar-container {
     border: 1px solid #eee;
     box-shadow: 0 0 12px 1px rgba(0,0,0,.1);
     border-radius: 4px;
+    position: absolute;
+    background-color: #fff;
   }
 
   .single-width {
-    width: 300px;
+    width: 306px;
   }
 
   .double-width {
-    width: 600px;
+    width: 612px;
   }
 
   ol {
     display: block;
     list-style-type: none;
     width: 280px;
-    padding: 0 5px;
+    padding: 0 8px 10px 8px;
+    margin: 0;
     float: left;
   }
 
@@ -214,5 +299,25 @@ export default {
   li.selected:hover {
     background-color: #20A0FF;
     color: #fff;
+  }
+
+  .triangle {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    cursor: pointer;
+  }
+
+  .triangle:hover {
+    opacity: 0.6;
+  }
+
+  .triangle-up {
+    border-bottom: 10px solid #20A0FF;
+    margin-bottom: 3px;
+  }
+  .triangle-down {
+    border-top: 10px solid #20A0FF;
   }
 </style>

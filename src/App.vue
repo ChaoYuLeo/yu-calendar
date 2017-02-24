@@ -1,6 +1,9 @@
 <template>
   <div id="app">
-    <yu-calendar :double-panel="calendar.double" :range="calendar.range"/>
+    单选单panel：<yu-calendar/>
+    单选双panel：<yu-calendar :double-panel="calendar.double"/>
+    双选单panel：<yu-calendar :range="calendar.range"/>
+    双选双panel：<yu-calendar :range="calendar.range" :double-panel="calendar.double"/>
   </div>
 </template>
 
