@@ -1,8 +1,9 @@
 var path = require('path')
 var webpack = require('webpack')
+var ExtractTextPlugin = require('extract-text-webpack-plugin')
 
 module.exports = {
-  entry: './src/main.js',
+  entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: '/dist/',
@@ -15,6 +16,10 @@ module.exports = {
         loader: 'vue-loader',
         options: {
           loaders: {
+            css: ExtractTextPlugin.extract({
+              loader: 'css-loader',
+              fallbackLoader: 'vue-style-loader' // <- this is a dep of vue-loader, so no need to explicitly install if using npm3
+            })
           }
           // other vue-loader options go here
         }
@@ -58,11 +63,12 @@ if (process.env.NODE_ENV === 'production') {
       }
     }),
     new webpack.optimize.UglifyJsPlugin({
-      sourceMap: true,
+      sourceMap: false,
       compress: {
         warnings: false
       }
     }),
+    new ExtractTextPlugin("./yucalendar.css"),
     new webpack.LoaderOptionsPlugin({
       minimize: true
     })
